@@ -1,55 +1,95 @@
 import os
 import glob
+import re
+from pathlib import Path
 
 def get_imaging_files(datafolder, namelist, readVRlogs=True):
     '''
-    get the triple of data files
+    Get the (TIFF, RElog[, VRlog]) triples for each requested trial in a session
+    folder, paired by exact trial-id match.
+
     Args:
-        datafolder: the folder containing the data files
-        namelist: a list of names, e.g., [00003, 00004, 00005]
+        datafolder: the folder containing the data files.
+        namelist: list of 5-digit zero-padded trial-id strings,
+                  e.g. ['00003', '00004', '00005'].
+        readVRlogs: when True, also include the VRlog file for each trial.
+
     Returns:
-        A dictionary, with each element as a list of two files (readVRlogs=False) or three files (readVRlogs=True)
-        1, tiff file
-        2, RELog file
-        3, VRLog file
+        A list of [tiff, RElog] (readVRlogs=False) or [tiff, RElog, VRlog]
+        (readVRlogs=True) entries, one per requested trial, sorted by trial id.
+
+    Raises:
+        ValueError: if any namelist entry is not a 5-digit zero-padded string,
+                    if multiple files of the same kind match a trial, or if any
+                    requested trial cannot be paired with all required files.
     '''
-    #get all the tiff files 
-    tifffiles = glob.glob(datafolder + "/*.tif")
-    #remove tifffiles with key words "stack"
-    tifffiles = [x for x in tifffiles if "stack" not in x]
-    #then only keep tiff files with the names in namelist
-    tifffiles = [x for x in tifffiles if any(y in x for y in namelist)]
-    #sort the tifffiles by the number in the file name
-    tifffiles.sort(key=lambda f: int(''.join(filter(str.isdigit, f))))
+    # (a) Every namelist entry must be a 5-digit zero-padded string.
+    bad = [x for x in namelist
+           if not (isinstance(x, str) and re.fullmatch(r"\d{5}", x))]
+    if bad:
+        raise ValueError(
+            "namelist entries must be 5-digit zero-padded strings "
+            f"(e.g. '00005'); got invalid entries: {bad!r}"
+        )
+    dupes = sorted({x for x in namelist if namelist.count(x) > 1})
+    if dupes:
+        raise ValueError(f"namelist contains duplicate entries: {dupes!r}")
+    requested = sorted(namelist)            # 5-digit padded -> string sort == numeric sort
+    requested_set = set(requested)
 
-    #get all the RElog files under the parent folder begin with 'RE' and with an extension of .txt
-    RElogfiles = glob.glob(datafolder + "/RE*.txt")
-    #remove RElogfiles with key words "stack"
-    RElogfiles = [x for x in RElogfiles if "stack" not in x]
-    
-    #get all the VRlog files under the parent folder begin with numbers and with an extension of .txt
-    VRlogfiles = glob.glob(datafolder + "/[0-9]*.txt")
+    # Trial token = trailing 5-digit group in the file stem, anchored to a
+    # non-digit boundary so a 6-digit suffix can't masquerade as a 5-digit trial.
+    trial_re = re.compile(r"(?<!\d)(\d{5})$")
 
-    #pair the tiff files and RElog files together which share the same key word
+    def trial_of(path):
+        m = trial_re.search(Path(path).stem)
+        return m.group(1) if m else None
+
+    folder = Path(datafolder)
+
+    def build_map(paths, kind):
+        m = {}
+        for p in paths:
+            if "stack" in Path(p).name:     # basename-only stack exclusion
+                continue
+            t = trial_of(p)
+            if t is None or t not in requested_set:
+                continue
+            if t in m:
+                raise ValueError(
+                    f"Multiple {kind} files matched trial {t} in {datafolder}: "
+                    f"{m[t]!r} and {str(p)!r}"
+                )
+            m[t] = str(p)
+        return m
+
+    tif_by_trial = build_map(glob.glob(str(folder / "*.tif")), "TIFF")
+    re_by_trial  = build_map(glob.glob(str(folder / "RE*.txt")), "RElog")
+    vr_by_trial  = (build_map(glob.glob(str(folder / "[0-9]*.txt")), "VRlog")
+                    if readVRlogs else {})
+
+    # (b) Every requested trial must produce a complete pairing.
     allfiles = []
-    for tifffile in tifffiles:
-        #extract the key word from the tifffile
-        #for example, '/home/zilong/Desktop/2D2P/Data/183_25072023/25072023_00005.tif' then extract '00005'
-        key = tifffile.split("/")[-1].split(".")[0].split("_")[-1]
+    missing = []
+    for trial in requested:
+        tif = tif_by_trial.get(trial)
+        rel = re_by_trial.get(trial)
+        vrl = vr_by_trial.get(trial) if readVRlogs else None
+        miss = []
+        if tif is None: miss.append("TIFF")
+        if rel is None: miss.append("RElog")
+        if readVRlogs and vrl is None: miss.append("VRlog")
+        if miss:
+            missing.append(f"trial {trial} (missing: {', '.join(miss)})")
+            continue
+        allfiles.append([tif, rel, vrl] if readVRlogs else [tif, rel])
 
-        #find the RElogfile containing the key word
-        RElogfile = [x for x in RElogfiles if key in x][0]
-        if readVRlogs:
-            #find the VRlogfile containing the key word
-            VRlogfile = [x for x in VRlogfiles if key in x][0]
-            #pair the tifffile and RElogfile together
-            pair = [tifffile, RElogfile, VRlogfile]
-        else:
-            pair = [tifffile, RElogfile]
-            
-        #append the pair to allfiles
-        allfiles.append(pair)
-        
+    if len(allfiles) != len(namelist):
+        raise ValueError(
+            f"get_imaging_files could not pair every requested trial in {datafolder}: "
+            + "; ".join(missing)
+        )
+
     return allfiles
 
 def get_rotary_center(centerfile):
