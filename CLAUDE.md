@@ -451,3 +451,64 @@ duplicate-namelist rejection, `_epoch_list_to_datetime` rewrite, and
 the `get_scanimage_frame_times` substitution) must be applied to **all
 three copies** to take effect everywhere. Importers do not share state
 across trees.
+
+## Pending: x/y convention drift in `2D2P/utils_image.py`
+
+`utils_image.py` carries an unresolved x/y axis convention drift.
+Surfaced 2026-04-27; **not fixed in that session** because the bug is
+latent on the square FOVs this lab actually records, and a correct fix
+is module-wide rather than one-line.
+
+**The disagreement.** Five sites in/around `Imaging_data_analysis/2D2P/`
+disagree about whether centre coordinates are stored as `[x, y]` or
+`[y, x]`:
+
+- `utils_io.py::get_rotary_center` — returns `[x, y]` (column 0 of
+  `circlecenter.txt` is named `rotx`, column 1 `roty`, packed as
+  `[rotx, roty]`). This is the centre source-of-truth.
+- `utils_image.py::_cv2_crop_bounds` body — does `cx = rotCenter[1]`,
+  `cy = rotCenter[0]`, i.e. **expects input as `[y, x]`**. Comment
+  `# OpenCV expects center = (x, y) = (col, row)` describes the output
+  tuple, not the input, and is misleading.
+- Caller #3 `get_unrotate_crop_cv2` — docstring says
+  `rotCenter (list): rotation center [row, col]` → asserts `[y, x]`,
+  matches helper body.
+- Caller #2 `get_meanframe_from_Zstacks_cv2_reg_then_unrotcrop` —
+  parameter named `rot_center_xy` with explicit comment
+  `# IMPORTANT: (x, y), keep xy consistent everywhere` → asserts
+  `[x, y]`, contradicts helper body.
+- Caller #1 `get_meanframe_from_Zstacks_cv2` — undocumented; convention
+  not stated.
+
+**Why it has been latent.** `_cv2_crop_bounds` computes
+`min(cx, w0 - cx, cy, h0 - cy)`. For a square FOV (`w0 == h0`) the
+inscribed-rectangle math is symmetric in cx/cy, so the swap produces
+the same crop bounds either way. ScanImage frames in this lab are
+square (256x256, 332x332, 346x346), so the bug does not manifest in
+current data. It would surface on non-square FOVs or whenever the
+centre is far enough off-axis that `cx vs w0` and `cy vs h0` select
+different limits.
+
+**Proper fix scope (do not attempt as a one-liner).**
+
+1. Pick the canonical convention. Recommended: `[x, y]`, matching
+   `get_rotary_center` (the source) and caller #2's documented
+   interface.
+2. Fix `_cv2_crop_bounds` body: `cx = rotCenter[0]`, `cy = rotCenter[1]`,
+   and rewrite the misleading comment.
+3. Fix caller #3 `get_unrotate_crop_cv2`'s docstring (currently asserts
+   `[row, col]` — opposite of the new convention).
+4. Add an explicit docstring to caller #1
+   `get_meanframe_from_Zstacks_cv2`.
+5. Audit every external caller — notably
+   `Imaging_data_analysis/2D2P/notebook/AligningTiffandRotatryAngle_newpipeline.ipynb`,
+   which passes `Rotcenter = [248, 236]` to multiple of these functions
+   and must use the same convention at every call site.
+
+**Validation requirement.** This change touches the unrotation geometry
+that `diagnose_meanReg.py` was specifically built to validate. Before
+committing any fix, run `diagnose_meanReg.py` on the 183_03082023 pilot
+and compare panel C (RegFrame on colleague's unrotated frames) against
+panel D (`DP_exp/meanReg.png` reference). The patched code must produce
+output indistinguishable from the colleague's pre-existing reference,
+not just "look reasonable".
