@@ -21,14 +21,20 @@ Results chapters.
 - Thesis submission deadline: **30 April 2026**.
 - Behavioural results chapter: complete in v4 draft
   (`Behavioural_analysis/_v2_pipeline/results/`).
-- Imaging results chapter: pending. Tier 1 batch (17 sessions) runs via
-  `scripts/run_tier1_batch.sh`, ~25 h sequential.
-- VRlog audit **IN PROGRESS** — some imaging sessions missing VRlogs,
-  `MiceVRlogs/` at project root may contain the missing files. Audit
-  must complete before kicking off batch.
+- Imaging results chapter: pending. Tier 1 batch (16 sessions, was 17)
+  **RUNNING** since 2026-04-27 02:18:40 via `scripts/run_tier1_batch.sh`.
+  Master log: `batch_master_log_20260427_021840.txt` at project root.
+  Expected completion ~03:00 on 2026-04-28.
+- VRlog audit **COMPLETE** 2026-04-27 — no files copied. `MiceVRlogs/`
+  was a false positive (mice 182/183/184 absent from `MiceVRlogs/`
+  entirely; per-trial VRlogs for those mice always lived in session
+  folders). See Decisions Log.
 - Discussion chapter: drafting concurrent with batch.
 - Active thesis file: `Thesis_FullDraft_Revised_v4.docx` → next save-as
   v5 once Results lands.
+- Before kicking off batch: set "Turn off hard disk after" to Never and
+  disable USB selective suspend in Windows Power Settings; `E:\` drive
+  must remain mounted for ~24 h.
 
 # Tech Stack
 
@@ -551,6 +557,11 @@ not just "look reasonable".
 | 2026-04-27 | Propagated patches to all three copies of `utils_io.py` (project-root, `2D2P_main/`, `Imaging_data_analysis/2D2P/`). Function bodies AST-identical post-patch. Commit `1397dc1`. |
 | 2026-04-27 | Deferred x/y convention drift in `2D2P/utils_image.py` — latent on square FOVs, fix needs validation against `DP_exp/meanReg.png` via `diagnose_meanReg.py`. Documented in Architecture, deferred post-thesis. Commit `a05b7a7`. |
 | 2026-04-27 | Codex review of `utils_image.py`: 20 findings, none actioned in this session. Most are defensive hardening or methodological-advisory. Top safety bug (#19 `rmtree` without containment) is in dead `UnrotateTiff` (#17 `NameError`) → zero current exposure. Defer post-thesis. |
+| 2026-04-27 | VRlog audit completed: zero copies from `MiceVRlogs/` needed. Mice 182/183/184 absent; their per-trial VRlogs (format `YYYYMMDD-HHMMSS.SS.NNNNN.txt` or `YYYYMMDD-HHMMSS_NNNNN.txt`) always live in session folders. `MiceVRlogs/` contains only session-level Practical Rig training logs (`YYYYMMDD-HHMMSS.txt`) for mice 162/163/723–941, dates don't overlap. Audit script at `Imaging_data_analysis/.claude/vrlog_audit.py`. |
+| 2026-04-27 | Tier 1 reduced from 17 to 16: dropped `724_12122024` (no behavioural trials, only baseline/stack/zstack); added `--exclude 00010` to `183_25072023` (gap in VR timing 170809→174206, no `.00010` file); renamed `E:\Data\184_06082023_deep\20230806-182930.30.00010txt` → `...00010.txt` (typo fix). |
+| 2026-04-27 | Tier 2 sessions deferred from current batch — no VRlogs at all in folder: `162_10072023`, `182_01082023`, `182_02082023`, `184_02082023`, `184_03082023`, `183_04082023_failrotationblocked`, `183_06082023_largezstack`, `184_06082023_largezstack`, `724_08112024`, `724_16102024`, `725_08112024`. Cannot contribute to place-cell or decoding analyses; can run later for non-VR metrics post-thesis. |
+| 2026-04-27 | Forked `ZilongJi/2D2P` to `Richirat/2D2P`, redirected origin, force-pushed local main. Old fork main state preserved at branch `fork-main-pre-2026-04-27`. All five session commits (`89e21da`, `1397dc1`, `fae6eb2`, `a05b7a7`, `90606d6`) backed up to GitHub. |
+| 2026-04-27 | Tier 1 batch launched 02:18:40 via Git Bash from PowerShell (`& "C:\Program Files\Git\bin\bash.exe" "<script>"` because bash isn't on PowerShell PATH). Power settings applied first: `disk-timeout-ac/dc=0`, USB selective suspend disabled. Master log at `batch_master_log_20260427_021840.txt`; per-session logs at `<session>/processed/batch_log_<ts>.txt`. Pre-batch pilot 183_03082023 output archived to `pilot_session/183/183_03082023/processed_archive_20260427_021840/`. |
 
 # Known issues
 
@@ -559,8 +570,23 @@ not just "look reasonable".
   `RegFrame` int16 wraparound for uint16 > 32767; `UnrotateTiff` dead
   due to commented-out `SITiffIO` import. None block current analysis
   path.
-- VRlog audit incomplete — some sessions in `E:\Data\` may have VRlogs
-  in `MiceVRlogs\` at project root. Pairing must be verified before
-  file moves (substring-matching risk class).
+- `MiceVRlogs/` does NOT contain per-trial imaging VRlogs for any mouse
+  used in imaging analysis. Per-trial VRlogs always live in the session
+  folder. `MiceVRlogs/` holds session-level Practical Rig training logs
+  only.
+- `162_10072023` has folder-name-vs-data date mismatch (folder claims
+  10/07/2023, REdata files dated 06/07/2023). Not in current batch;
+  needs human review post-thesis to determine correct date.
 - Three parallel copies of `utils_io.py` exist by design (see
   Architecture notes). Any future fix must propagate to all three.
+
+# File locations
+
+Pinned paths for the current Tier 1 batch run:
+
+- Tier 1 batch script: `D:/Statistical Analysis Pipeline/scripts/run_tier1_batch.sh`
+- Master batch log: `D:/Statistical Analysis Pipeline/batch_master_log_20260427_021840.txt`
+- Per-session batch logs: `<session>/processed/batch_log_<timestamp>.txt`
+- Archived pre-2026-04-27 pilot 183_03082023 output: `pilot_session/183/183_03082023/processed_archive_20260427_021840/`
+- VRlog audit script: `Imaging_data_analysis/.claude/vrlog_audit.py`
+- GitHub backup: `https://github.com/Richirat/2D2P` (origin), with `fork-main-pre-2026-04-27` branch preserving old fork state
