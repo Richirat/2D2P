@@ -16,6 +16,20 @@ and produces per-session metrics, cross-day learning curves, MixedLM fits,
 per-mouse trajectory PDFs, and a combined results report for thesis
 Results chapters.
 
+# Active sprint (as of 2026-04-27)
+
+- Thesis submission deadline: **30 April 2026**.
+- Behavioural results chapter: complete in v4 draft
+  (`Behavioural_analysis/_v2_pipeline/results/`).
+- Imaging results chapter: pending. Tier 1 batch (17 sessions) runs via
+  `scripts/run_tier1_batch.sh`, ~25 h sequential.
+- VRlog audit **IN PROGRESS** — some imaging sessions missing VRlogs,
+  `MiceVRlogs/` at project root may contain the missing files. Audit
+  must complete before kicking off batch.
+- Discussion chapter: drafting concurrent with batch.
+- Active thesis file: `Thesis_FullDraft_Revised_v4.docx` → next save-as
+  v5 once Results lands.
+
 # Tech Stack
 
 - **Python only.** This project does not use R in any capacity. All
@@ -254,6 +268,21 @@ markdown summary + report PDF), per-mouse trajectory PDFs, and the
   `ca1_gcamp6f_ops()`.
 - QC reports are single-file, self-contained HTML (base64-inline PNGs) so
   they are portable and emailable.
+
+# Code review workflow
+
+- Claude Code installed locally with Codex CLI as a second-opinion
+  subagent.
+- Subagent definitions live at `.claude/agents/codex-reviewer.md` in each
+  project root that wants the loop. Canonical copy at
+  `D:/Statistical Analysis Pipeline/Imaging_data_analysis/.claude/agents/codex-reviewer.md`.
+- Memory rule when invoking: statistical/inferential suggestions
+  (effect-size definitions, denominators, hypothesis-test variants,
+  preprocessing parameters, signal-processing choices) are **ADVISORY**,
+  not authoritative. Bugs (off-by-one, NaN handling, type errors) can be
+  auto-fixed.
+- Codex calls run ~$0.03 – $0.10 per script review; subagent invokes
+  Codex once per call, do not loop.
 
 # Important Context
 
@@ -512,3 +541,26 @@ and compare panel C (RegFrame on colleague's unrotated frames) against
 panel D (`DP_exp/meanReg.png` reference). The patched code must produce
 output indistinguishable from the colleague's pre-existing reference,
 not just "look reasonable".
+
+# Decisions log
+
+| Date | Decision |
+|---|---|
+| 2026-04-27 | Set up Claude Code + Codex CLI dual-agent review loop. Rationale: catches errors single-model self-review misses; first run on `utils_io.py` found 14 issues including 2 silent-corruption bugs. |
+| 2026-04-27 | Fixed `utils_io.py` latent bugs (anchored trial-id matching, dedup namelist, `_epoch_list_to_datetime` timedelta rewrite). Verified no historical analyses affected — all 7 callers passed 5-digit padded literals. Commits `89e21da`, `fae6eb2`. |
+| 2026-04-27 | Propagated patches to all three copies of `utils_io.py` (project-root, `2D2P_main/`, `Imaging_data_analysis/2D2P/`). Function bodies AST-identical post-patch. Commit `1397dc1`. |
+| 2026-04-27 | Deferred x/y convention drift in `2D2P/utils_image.py` — latent on square FOVs, fix needs validation against `DP_exp/meanReg.png` via `diagnose_meanReg.py`. Documented in Architecture, deferred post-thesis. Commit `a05b7a7`. |
+| 2026-04-27 | Codex review of `utils_image.py`: 20 findings, none actioned in this session. Most are defensive hardening or methodological-advisory. Top safety bug (#19 `rmtree` without containment) is in dead `UnrotateTiff` (#17 `NameError`) → zero current exposure. Defer post-thesis. |
+
+# Known issues
+
+- `2D2P/utils_image.py`: 20 Codex findings deferred. Top three: x/y
+  convention drift in `_cv2_crop_bounds` (latent on square FOVs);
+  `RegFrame` int16 wraparound for uint16 > 32767; `UnrotateTiff` dead
+  due to commented-out `SITiffIO` import. None block current analysis
+  path.
+- VRlog audit incomplete — some sessions in `E:\Data\` may have VRlogs
+  in `MiceVRlogs\` at project root. Pairing must be verified before
+  file moves (substring-matching risk class).
+- Three parallel copies of `utils_io.py` exist by design (see
+  Architecture notes). Any future fix must propagate to all three.
