@@ -30,10 +30,18 @@ Results chapters.
   `Imaging_data_analysis/.claude/_thesis_*.{png,pdf}` and
   `relaxed_pc_summary.csv`. Final consolidated report at
   `Imaging_data_analysis/.claude/IMAGING_RESULTS_FINAL_REPORT.md`.
-- **3 Variant A sessions running** in background (started 06:23 today):
-  935/20260320, 935/20260325, 940/20260401. VRlogs copied from
-  `MiceVRlogs/<mouse>/Phase 3/Imaging Rig/` for the latter two. Bg
-  log: `Imaging_data_analysis/.claude/variantA_run.log`.
+- **3 Variant A sessions COMPLETED but all excluded from final results**:
+  935/20260320 produced 1303 iscells with 71 candidate "PCs" of peak
+  ΔF/F 13–99 (biologically implausible; user-confirmed via stack-image
+  inspection that recordings are noisy with few clear cells); 935/20260325
+  Suite2p detected 0 ROIs; 940/20260401 had 108k frames discarded at
+  unrotation (NaN angles → rotary_stream timestamp mismatch). **Added
+  peak ≤ 10 ceiling to PC criteria** (`PEAK_MAX = 10.0` in
+  `reclassify_relaxed_multi.py`, `build_thesis_figs_v2.py`,
+  `build_place_field_props.py`). Net: dataset stays at **55 PCs across
+  13 sessions, 4 mice (182, 183, 184, 730)**; variant A reported as
+  "preliminary, excluded due to data-quality issues" in final report
+  §2.2.
 - **Cross-day registration attempted, FAILED** — FOV instability
   (100–176 px shifts) precludes single-cell tracking. Reports in
   `cross_day_730_v2/` (E:\Data\) and `cross_day_183_v2/`
