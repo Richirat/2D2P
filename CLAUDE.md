@@ -16,25 +16,39 @@ and produces per-session metrics, cross-day learning curves, MixedLM fits,
 per-mouse trajectory PDFs, and a combined results report for thesis
 Results chapters.
 
-# Active sprint (as of 2026-04-27)
+# Active sprint (as of 2026-04-28)
 
-- Thesis submission deadline: **30 April 2026**.
+- Thesis submission deadline: **30 April 2026** (≈ 36 h remaining).
 - Behavioural results chapter: complete in v4 draft
   (`Behavioural_analysis/_v2_pipeline/results/`).
-- Imaging results chapter: pending. Tier 1 batch (16 sessions, was 17)
-  **RUNNING** since 2026-04-27 02:18:40 via `scripts/run_tier1_batch.sh`.
-  Master log: `batch_master_log_20260427_021840.txt` at project root.
-  Expected completion ~03:00 on 2026-04-28.
-- VRlog audit **COMPLETE** 2026-04-27 — no files copied. `MiceVRlogs/`
-  was a false positive (mice 182/183/184 absent from `MiceVRlogs/`
-  entirely; per-trial VRlogs for those mice always lived in session
-  folders). See Decisions Log.
-- Discussion chapter: drafting concurrent with batch.
+- **Tier 1 imaging batch COMPLETE** (started 2026-04-27 02:18:40,
+  finished overnight). 16 sessions processed end-to-end; outputs in
+  `<session>/processed/`.
+- **Place-cell analysis COMPLETE** (this session 2026-04-28). 55
+  PCs / 2148 iscells = 2.6 % across 13 of 16 sessions; 5 cells pass
+  strict 3-criterion. Thesis-ready figures + CSVs at
+  `Imaging_data_analysis/.claude/_thesis_*.{png,pdf}` and
+  `relaxed_pc_summary.csv`. Final consolidated report at
+  `Imaging_data_analysis/.claude/IMAGING_RESULTS_FINAL_REPORT.md`.
+- **3 Variant A sessions running** in background (started 06:23 today):
+  935/20260320, 935/20260325, 940/20260401. VRlogs copied from
+  `MiceVRlogs/<mouse>/Phase 3/Imaging Rig/` for the latter two. Bg
+  log: `Imaging_data_analysis/.claude/variantA_run.log`.
+- **Cross-day registration attempted, FAILED** — FOV instability
+  (100–176 px shifts) precludes single-cell tracking. Reports in
+  `cross_day_730_v2/` (E:\Data\) and `cross_day_183_v2/`
+  (D:\Statistical Analysis Pipeline\). Documented in final report §5.
+- **Imaging Methods/Results outline** drafted at
+  `Imaging_data_analysis/.claude/THESIS_OUTLINE_imaging_chapters.md` —
+  Methods §2.X.1-6, Results Ch 4 + Ch 5 sections, Discussion §6.X.
+- VRlog audit **COMPLETE** 2026-04-27 — `MiceVRlogs/` had nothing for
+  mice 182/183/184; for variant A mice 935/937/940, MVR has imaging-
+  rig logs but only some dates match (see Decisions log).
 - Active thesis file: `Thesis_FullDraft_Revised_v4.docx` → next save-as
-  v5 once Results lands.
-- Before kicking off batch: set "Turn off hard disk after" to Never and
-  disable USB selective suspend in Windows Power Settings; `E:\` drive
-  must remain mounted for ~24 h.
+  v5 once Imaging Results land.
+- Before kicking off any new batch: set "Turn off hard disk after" to
+  Never and disable USB selective suspend in Windows Power Settings;
+  `E:\` drive must remain mounted.
 
 # Tech Stack
 
@@ -562,6 +576,13 @@ not just "look reasonable".
 | 2026-04-27 | Tier 2 sessions deferred from current batch — no VRlogs at all in folder: `162_10072023`, `182_01082023`, `182_02082023`, `184_02082023`, `184_03082023`, `183_04082023_failrotationblocked`, `183_06082023_largezstack`, `184_06082023_largezstack`, `724_08112024`, `724_16102024`, `725_08112024`. Cannot contribute to place-cell or decoding analyses; can run later for non-VR metrics post-thesis. |
 | 2026-04-27 | Forked `ZilongJi/2D2P` to `Richirat/2D2P`, redirected origin, force-pushed local main. Old fork main state preserved at branch `fork-main-pre-2026-04-27`. All five session commits (`89e21da`, `1397dc1`, `fae6eb2`, `a05b7a7`, `90606d6`) backed up to GitHub. |
 | 2026-04-27 | Tier 1 batch launched 02:18:40 via Git Bash from PowerShell (`& "C:\Program Files\Git\bin\bash.exe" "<script>"` because bash isn't on PowerShell PATH). Power settings applied first: `disk-timeout-ac/dc=0`, USB selective suspend disabled. Master log at `batch_master_log_20260427_021840.txt`; per-session logs at `<session>/processed/batch_log_<ts>.txt`. Pre-batch pilot 183_03082023 output archived to `pilot_session/183/183_03082023/processed_archive_20260427_021840/`. |
+| 2026-04-28 | **Manifest patches** — relaxed `vrlog_suffixed` regex to `\d{4,5}` (183_26072023 uses 4-digit trial suffixes, was invisible to pipeline); added Variant C path support for hybrid sessions with bare REdata + suffixed VRlogs. Edits in `io_core/variants.py` and `io_core/manifest.py`. 183_26072023 re-analysed with the patched manifest. |
+| 2026-04-28 | **Place-cell analysis** (canonical Skaggs/Ji-Wilson criteria — peak ≥ 0.8, SIC ≥ 95, drop split-half due to within-trial Z-drift) plus 30 % coverage filter. **55 PCs / 2148 iscells = 2.6 %** across 13 of 16 sessions; 5 pass strict 3-criterion. Median peak ΔF/F 2.21, median field area 0.70 cm², 18 % multi-field. SIC sweep showed 95→92 adds 8 PCs (natural break at 92), 92→90 adds 0 (SIC distribution gap). |
+| 2026-04-28 | **Trial-quality categorisation** (4 classes by coverage_visited × median peak ΔF/F): 92 OK / 10 good_imaging_bad_behavior / 12 good_coverage_low_activity / 3 low_both. The 10 'good_imaging_bad_behavior' trials retain valid imaging data but were excluded from PC scoring (mouse barely moved; tuning maps mostly NaN). Diagnostic CSV at `Imaging_data_analysis/.claude/_trial_quality_diagnostic.csv`. |
+| 2026-04-28 | **Cross-day registration via `scripts/cross_day_registry_cli.py`**: mouse 730 (2 days) → 0/127 cells matched; mouse 183 (8 dates) → 1/359 matched. Inter-day FOV shifts of 100–176 px (out of 332 px imaging width) preclude single-cell tracking. Documented as future work (chronic recording without fiducial repositioning). Reports at `E:/Data/cross_day_730_v2/` and `D:/Statistical Analysis Pipeline/cross_day_183_v2/`. |
+| 2026-04-28 | **Variant A pipeline extension** — 3 D:\data sessions (935/20260320, 935/20260325, 940/20260401) added; VRlogs for 20260325 and 20260401 copied from `MiceVRlogs/<mouse>/Phase 3/Imaging Rig/` (only date matches available for mouse 935 = 20260320, 20260325; mouse 940 = 20260401). Other variant-A sessions (935/20260313, 935/20260319, 935/20260321, 940/20260328, 937/20260328) cannot be analysed — VRlog never recorded or lost. Pipeline auto-detects Variant A and uses `monotonicSec` for frame ↔ rotary pairing per ScanImage 2023 convention. |
+| 2026-04-28 | **`tqdm` progress bar pinned to terminal bottom** — added to `scripts/batch_run_session.py` (writes to stderr to bypass `tee` in shell script) and `scripts/run_tier1_batch.sh` (added per-session counter + ETA). Future runs show pinned bar `[elapsed<remaining, rate]` with current trial label. |
+| 2026-04-28 | **Pipeline divergences from colleague's documented**: per-trial vs concatenated Suite2p; no DC harmonisation in per-trial mode; block_size=[64,64] vs colleague's [32,32]; ΔF/F reimplementation has documented ≤ 8 % boundary delta. See final report §3 + §9.5. |
 
 # Known issues
 
@@ -579,6 +600,22 @@ not just "look reasonable".
   needs human review post-thesis to determine correct date.
 - Three parallel copies of `utils_io.py` exist by design (see
   Architecture notes). Any future fix must propagate to all three.
+- **Within-trial Z-drift** is the dominant pipeline-side issue
+  affecting place-cell yield. Inter-trial cell-count cliffs (e.g.
+  183_26072023 trials 1–3 ≈ 39–48 iscells, trials 6–10 ≈ 3–8) and
+  within-trial firing-map drift (split-half failures on cells with
+  high peak/SIC). Legacy `zdriftprocessor.py` is GUI-only, not wired
+  into the batch flow. Documented in final report §9.1.
+- **Cross-day FOV instability** — 100–176 px inter-day shifts
+  (in 332 px image) for mice 183 and 730. Single-cell tracking across
+  days impossible in this dataset. Suggests fiducial-marker re-
+  alignment protocol for chronic recordings.
+- **Mouse 724 yields 0 place cells** even at SIC ≥ 85; max SIC = 94
+  across 36 iscells (just below 95-percentile cutoff). Real session-
+  level effect, not pipeline bug.
+- **21 D:\data sessions need centre detection** (manual `centerdetector.py`
+  GUI) before they can be unrotated. 19 sessions with CC + rotary
+  but no VR can run pipeline but yield no place-cell counts.
 
 # File locations
 
@@ -590,3 +627,13 @@ Pinned paths for the current Tier 1 batch run:
 - Archived pre-2026-04-27 pilot 183_03082023 output: `pilot_session/183/183_03082023/processed_archive_20260427_021840/`
 - VRlog audit script: `Imaging_data_analysis/.claude/vrlog_audit.py`
 - GitHub backup: `https://github.com/Richirat/2D2P` (origin), with `fork-main-pre-2026-04-27` branch preserving old fork state
+- **Imaging analysis final report**: `Imaging_data_analysis/.claude/IMAGING_RESULTS_FINAL_REPORT.md` (executive summary + per-session table + Methods note + caveats)
+- **Imaging chapters outline**: `Imaging_data_analysis/.claude/THESIS_OUTLINE_imaging_chapters.md` (Methods §2.X, Results Ch 4–5, Discussion §6.X)
+- **Place-cell figures** (PNG + PDF) for thesis use:
+  - `_thesis_place_cells_24panel_v2` — top 24 PC tuning maps, colleague-style inferno
+  - `_thesis_pc_per_session_v2` — per-session PC count + fraction bars
+  - `_thesis_pf_properties` — peak ΔF/F, field area, centroid scatter, n_fields
+  - `_thesis_pf_radial_per_session` — radial profiles per FOV centred on each PC's peak
+- **Aggregate CSVs** (thesis tables): `relaxed_pc_summary.csv`, `sic_sweep_summary.csv`, `_trial_quality_diagnostic.csv`
+- **Variant A run log**: `Imaging_data_analysis/.claude/variantA_run.log` (3 sessions in progress)
+- **Cross-day registry reports**: `E:/Data/cross_day_730_v2/report.html` and `D:/Statistical Analysis Pipeline/cross_day_183_v2/report.html`
